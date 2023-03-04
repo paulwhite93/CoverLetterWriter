@@ -1,9 +1,11 @@
 from tkinter import *
 from tkinter import filedialog
 import openai
+import os
 
 
 openai.api_key = "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" #must be set before it will function
+directory = os.getcwd()
 resumeFile = "resume_master.txt"
 global resume
 resume = ""
