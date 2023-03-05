@@ -2,7 +2,8 @@ from tkinter import *
 from tkinter import filedialog
 import openai
 import os
-
+import requests
+from bs4 import BeautifulSoup
 
 openai.api_key = "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" #must be set before it will function
 directory = os.getcwd()
@@ -20,6 +21,8 @@ class Job:
         self.open_window()
 
     def open_window(self):
+        if self.jobResume == "":
+            self.jobResume = resume
         self.JobWindow = Toplevel(GUIWindow)
         self.JobWindow.geometry("1280x720")
         self.JobWindow.title(self.company_name)
@@ -53,11 +56,11 @@ class Job:
     def refine_resume(self):
         #open ai resume refinement
         #open a new window with refined resume returned by openAI and prompt user if theyd like to save to a file
-        def send():
+        def sendResume():
             prompt = "please personalize my resume for this: " + self.job_title +" " + self.company_name + "\n Here is the job description: " + self.jobDesc + "\n And here is my resume: " + self.jobResume
             resume_outputtxt.insert(END,self.sendData(prompt))
 
-        def save():
+        def saveResume():
             self.write_resume_to_file(resume_outputtxt.get("1.0",'end-1c'))
             window.destroy()
             return
@@ -72,8 +75,8 @@ class Job:
         resume_outputtxt = Text(outputlabel, height=40, width=120)
         resume_outputtxt.grid(row = 1)
 
-        saveResumeButton = Button(outputlabel, text = "Save Resume", command = save).grid(row = 2)
-        send()
+        Button(outputlabel, text = "Save Resume", command = saveResume).grid(row = 2)
+        sendResume()
     
 
     def create_cover_letter(self):
@@ -109,14 +112,20 @@ class Job:
         global newResume
         newResume = data
         file = filedialog.asksaveasfile(mode='w',initialfile = self.company_name + "_resume", defaultextension=".txt",)
-        file.write(data)
-        file.close()
+        try:
+            file.write(data)
+            file.close()
+        except Exception:
+            print("Error writing to file")
         return
     def write_cover_letter_to_file(self,data):
         #write cover letter to a file
         file = filedialog.asksaveasfile(mode='w',initialfile = self.company_name + "_coverLetter", defaultextension=".txt",)
-        file.write(data)
-        file.close()
+        try:
+            file.write(data)
+            file.close()
+        except Exception:
+            print("Error writing to file")
 
     def set_job_title(self):
         Label(self.JobWindow, text= self.job_title).grid(row = 0, column = 1)
@@ -124,16 +133,12 @@ class Job:
         Label(self.JobWindow, text= self.company_name).grid(row = 1, column = 1)
     def set_job_desc(self):
         jobDesc_text = Text(self.JobWindow,height=30, width=80)
-        jobDesc_text.grid(row = 3, column = 0,columnspan = 20, rowspan = 6,)
+        jobDesc_text.grid(row = 3, column = 0,columnspan = 20, rowspan = 6)
         jobDesc_text.insert(END,self.jobDesc)
     def set_resume(self):
         jobResume_text = Text(self.JobWindow,height=30, width=80)
-        jobResume_text.grid(row = 3, column = 20,columnspan = 20, rowspan = 6,)
+        jobResume_text.grid(row = 3, column = 20,columnspan = 20, rowspan = 6)
         jobResume_text.insert(END,self.jobResume)
-
-
-    
-
 
 #application GUI
 GUIWindow = Tk()
@@ -153,25 +158,53 @@ def create_job():
         add_button(jobList[-1])
         destroy_window()
 
+    def scrape_url():
+        #build job based on url
+        
+
+        URL = e3.get()
+        page = requests.get(URL)
+        #print(page.text)
+
+        soup = BeautifulSoup(page.content, 'html.parser')
+        results = soup.find(id="main")
+        if results:
+            job_title = results.find("h1", class_ = "app-title")
+            company_name = results.find("span", class_ = "company-name")
+            #print(results.prettify())
+            jobDesc = results.find("div", id="content")
+            #print(job_title.text)
+            #print(company_name.text)
+            #print(jobDesc.text)
+            e1.insert(END,job_title.text)
+            e2.insert(END,company_name.text)
+            jobdescriptiontxt.insert(END,jobDesc.text)
+
+
     window = Toplevel(GUIWindow)
     window.title("Setting Job Description and Company Name")
     window.geometry("1280x720")
 
-    Label(window, text='Job Title:').grid(row=0)
-    Label(window, text='Company Name').grid(row=1)
+    Label(window, text='Job Title:').grid(row=1)
+    Label(window, text='Company Name').grid(row=2)
     e1 = Entry(window)
     e2 = Entry(window)
-    e1.grid(row=0, column=1)
-    e2.grid(row=1, column=1)
+    e1.grid(row=1, column=1)
+    e2.grid(row=2, column=1)
 
     jobdescriptionlabel = Label(window, text= "Please paste your job description here:")
-    jobdescriptionlabel.grid(row = 2)
+    jobdescriptionlabel.grid(row = 3)
     jobdescriptiontxt = Text(window, height=10, width=50)
-    jobdescriptiontxt.grid(row = 3)
+    jobdescriptiontxt.grid(row = 4)
 
     submitButton = Button(window, text = "Save Information", command = saveInfo)
-    submitButton.grid(row = 4)
+    submitButton.grid(row = 5)
     
+    Label(window, text='Job URL:').grid(row=0)
+    e3 = Entry(window)
+    e3.grid(row=0, column=1)
+    scrapeURLButton = Button(window, text = "Scrape URL", command = scrape_url)
+    scrapeURLButton.grid(row = 0, column = 2)
     return
 
 def add_button(job):
@@ -181,10 +214,22 @@ def upload_resume():
     title="resume_master.txt", 
     filetypes=(("Text Files", "*.txt"),)
     )
-    tf = open(tf)
-    global resume
-    resume = tf.read()
-    tf.close()
+    try:
+        tf = open(tf,'r')
+        global resume
+        resume = tf.read()
+        tf.close()
+        display_resume()
+    except Exception:
+        return
+    
+def display_resume():
+    resumeFrame = LabelFrame(NewJobFrame, text = "Master Resume")
+    resumeFrame.grid(row = 0, column = 10,columnspan = 20, rowspan = 6,sticky=E)
+    resumeText = Text(resumeFrame, height=20, width=100)
+    resumeText.grid()
+    #print(resume)
+    resumeText.insert(END,resume)
 
 #Create Existing Job Frame
 jobFrame = LabelFrame(GUIWindow,text = "Jobs", padx=15, pady=15)
