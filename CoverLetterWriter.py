@@ -5,6 +5,8 @@ import os
 import requests
 from bs4 import BeautifulSoup
 
+#to build navigate to the directory and run from cmd "pyinstaller --onefile CoverLetterWriter.py"
+
 openai.api_key = "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" #must be set before it will function
 directory = os.getcwd()
 resumeFile = "resume_master.txt"
@@ -49,7 +51,7 @@ class Job:
     def sendData(self,data):
         #sends data to openai
         #sets the outputtxt to the output data from openai
-        print(data)
+        #print(data)
         chat_completion = openai.ChatCompletion.create(model = "gpt-3.5-turbo", messages=[{"role":"user","content":data}])
         return chat_completion.choices[0].message.content
 
@@ -160,7 +162,7 @@ def create_job():
 
     def scrape_url():
         #build job based on url
-        
+        #to Do (better define job description, position title and company name IE create a reference table to commonly formats)
 
         URL = e3.get()
         page = requests.get(URL)
@@ -243,24 +245,4 @@ Button(NewJobFrame, text="Create New Job", command = create_job).grid(row = 0)
 #upload resume button
 Button(NewJobFrame, text="Master Resume", command = upload_resume).grid(row = 1, sticky = E)
 
-
-"""
-#show current saved information
-Label(GUIWindow, text='Job Title:').grid(row=0)
-Label(GUIWindow, text='Company Name').grid(row=1)
-Label(GUIWindow, text='Job Description').grid(row=2)
-
-
-#define buttons
-
-setJobDescriptionButton = Button(GUIWindow, text="Set Job Description", command = set_job_description)
-setJobDescriptionButton.grid(row = 3, column = 0)
-
-
-refineResumeButton = Button(GUIWindow, text="Refine Resume", command = refine_resume)
-refineResumeButton.grid(row = 3, column = 1)
-
-createCoverLetter = Button(GUIWindow, text="Create Cover Letter", command = create_cover_letter)
-createCoverLetter.grid(row = 3, column = 2)
-"""
 GUIWindow.mainloop()
