@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 #to build navigate to the directory and run from cmd "pyinstaller --onefile CoverLetterWriter.py"
 
-openai.api_key = "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" #must be set before it will function
+openai.api_key #api key must be set before it will function
 directory = os.getcwd()
 resumeFile = "resume_master.txt"
 global resume
@@ -113,7 +113,7 @@ class Job:
         #if were saving new resume 
         global newResume
         newResume = data
-        file = filedialog.asksaveasfile(mode='w',initialfile = self.company_name + "_resume", defaultextension=".txt",)
+        file = filedialog.asksaveasfile(mode='w',initialfile = ""+ self.company_name.strip() + "_resume", defaultextension=".txt",)
         try:
             file.write(data)
             file.close()
@@ -122,7 +122,7 @@ class Job:
         return
     def write_cover_letter_to_file(self,data):
         #write cover letter to a file
-        file = filedialog.asksaveasfile(mode='w',initialfile = self.company_name + "_coverLetter", defaultextension=".txt",)
+        file = filedialog.asksaveasfile(mode='w',initialfile = ""+ self.company_name.strip() + "_coverLetter", defaultextension=".txt",)
         try:
             file.write(data)
             file.close()
@@ -146,6 +146,41 @@ class Job:
 GUIWindow = Tk()
 GUIWindow.geometry("1280x720")
 jobList = []
+def get_apiKey():
+    if not openai.api_key:
+        #check for api key from file
+        if os.path.exists("apiKey.txt"):
+            apifile = open("apiKey.txt", "r")
+            apiKey = apifile.read().strip()
+            apifile.close()
+            print(apiKey)
+            openai.api_key = apiKey
+        else:
+            input_apiKey()
+def input_apiKey():
+        #if file not found open window asking user to set api key
+        #then save api key to file in current working directory
+        def save_apiKey():
+            apiKey = e1.get().strip()
+            try:
+                if os.path.exists("apiKey.txt"):
+                    os.remove("apiKey.txt")
+                apifile = open("apiKey.txt", "a")
+                apifile.write(apiKey)
+                apifile.close()
+                apiWindow.destroy()
+            except Exception:
+                print("Error writing to file")
+            get_apiKey()
+        apiWindow = Toplevel(GUIWindow)
+        apiWindow.title("Please provide an API key")
+        apiWindow.geometry("1280x720")
+        Label(apiWindow, text="Please provide an API key").grid(row=0)
+        e1 = Entry(apiWindow)
+        e1.grid(row = 0,column= 1)
+        Button(apiWindow,command = save_apiKey,text="Submit").grid(row=1,column=0)
+        Button(apiWindow,command = apiWindow.destroy,text="Cancel").grid(row=1,column=1)
+
 
 def create_job():
     #make a button to open the job window
@@ -244,5 +279,5 @@ Button(NewJobFrame, text="Create New Job", command = create_job).grid(row = 0)
 
 #upload resume button
 Button(NewJobFrame, text="Master Resume", command = upload_resume).grid(row = 1, sticky = E)
-
+get_apiKey()
 GUIWindow.mainloop()
