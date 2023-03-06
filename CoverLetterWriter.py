@@ -3,13 +3,15 @@ from tkinter import filedialog
 import openai
 import os
 import requests
+import time
 from bs4 import BeautifulSoup
 
 #to build navigate to the directory and run from cmd "pyinstaller --onefile CoverLetterWriter.py"
 
 openai.api_key #api key must be set before it will function
 directory = os.getcwd()
-resumeFile = "resume_master.txt"
+resumeFile = "resume_master.txt"#currently deprecated
+background_image_file = "BackgroundImage.png"
 global resume
 resume = ""
 #open ai startup 
@@ -28,6 +30,8 @@ class Job:
         self.JobWindow = Toplevel(GUIWindow)
         self.JobWindow.geometry("1280x720")
         self.JobWindow.title(self.company_name)
+        label1 = Label( self.JobWindow, image = bg)
+        label1.place(x = 0, y = 0)
 
         Label(self.JobWindow, text='Job Title:').grid(row=0)
         Label(self.JobWindow, text='Company Name:').grid(row=1)
@@ -70,7 +74,8 @@ class Job:
         window = Toplevel(self.JobWindow)
         window.title("Refining Resume")
         window.geometry("1280x720")
-
+        label1 = Label( window, image = bg)
+        label1.place(x = 0, y = 0)
         outputlabel = LabelFrame(window, text= "Refined Resume")
         outputlabel.grid(row=1,column=0)
 
@@ -144,7 +149,10 @@ class Job:
 
 #application GUI
 GUIWindow = Tk()
-GUIWindow.geometry("1280x720")
+GUIWindow.geometry("1000x1000")
+bg = PhotoImage(file=background_image_file)
+label1 = Label( GUIWindow, image = bg)
+label1.place(x = 0, y = 0)
 jobList = []
 def get_apiKey():
     if not openai.api_key:
@@ -155,9 +163,21 @@ def get_apiKey():
             apifile.close()
             print(apiKey)
             openai.api_key = apiKey
+            if not test_apiKey():
+                os.remove("apiKey.txt")
+                openai.api_key = ""
+                input_apiKey("Key rejected. Please enter a new key.")
         else:
-            input_apiKey()
-def input_apiKey():
+            input_apiKey(None)
+def test_apiKey():
+    #test api key
+    try:
+        chat_completion = openai.ChatCompletion.create(model = "gpt-3.5-turbo", messages=[{"role":"user","content":"test"}])
+        return True
+    except Exception:
+        return False
+
+def input_apiKey(errorText):
         #if file not found open window asking user to set api key
         #then save api key to file in current working directory
         def save_apiKey():
@@ -169,17 +189,27 @@ def input_apiKey():
                 apifile.write(apiKey)
                 apifile.close()
                 apiWindow.destroy()
+                
             except Exception:
                 print("Error writing to file")
+
             get_apiKey()
+
         apiWindow = Toplevel(GUIWindow)
         apiWindow.title("Please provide an API key")
-        apiWindow.geometry("1280x720")
-        Label(apiWindow, text="Please provide an API key").grid(row=0)
-        e1 = Entry(apiWindow)
-        e1.grid(row = 0,column= 1)
-        Button(apiWindow,command = save_apiKey,text="Submit").grid(row=1,column=0)
-        Button(apiWindow,command = apiWindow.destroy,text="Cancel").grid(row=1,column=1)
+        apiWindow.geometry("300x200")
+
+        label1 = Label(apiWindow, image = bg)
+        label1.place(x = 0, y = 0)
+        if(errorText):
+            Label(apiWindow, text=errorText).grid(row=0,columnspan=4)
+        else:
+            Label(apiWindow, text="Please provide an OpenAi API key:").grid(row=0,columnspan=4)
+        
+        e1 = Entry(apiWindow, width = 50)
+        e1.grid(row = 1,column= 0,columnspan= 4)
+        Button(apiWindow,command = save_apiKey,text="Submit").grid(row=2,column=1)
+        Button(apiWindow,command = apiWindow.destroy,text="Cancel").grid(row=2,column=2)
 
 
 def create_job():
@@ -221,6 +251,9 @@ def create_job():
     window = Toplevel(GUIWindow)
     window.title("Setting Job Description and Company Name")
     window.geometry("1280x720")
+    #bg = PhotoImage(file=background_image_file)
+    label1 = Label(window, image = bg)
+    label1.place(x = 0, y = 0)
 
     Label(window, text='Job Title:').grid(row=1)
     Label(window, text='Company Name').grid(row=2)
@@ -231,11 +264,11 @@ def create_job():
 
     jobdescriptionlabel = Label(window, text= "Please paste your job description here:")
     jobdescriptionlabel.grid(row = 3)
-    jobdescriptiontxt = Text(window, height=10, width=50)
-    jobdescriptiontxt.grid(row = 4)
+    jobdescriptiontxt = Text(window, height=30, width=100)
+    jobdescriptiontxt.grid(row = 4,columnspan = 20, rowspan = 6)
 
     submitButton = Button(window, text = "Save Information", command = saveInfo)
-    submitButton.grid(row = 5)
+    submitButton.grid(row = 10)
     
     Label(window, text='Job URL:').grid(row=0)
     e3 = Entry(window)
@@ -279,5 +312,6 @@ Button(NewJobFrame, text="Create New Job", command = create_job).grid(row = 0)
 
 #upload resume button
 Button(NewJobFrame, text="Master Resume", command = upload_resume).grid(row = 1, sticky = E)
-get_apiKey()
+
+GUIWindow.after(500,get_apiKey)#get api key after 500 milliseconds
 GUIWindow.mainloop()
